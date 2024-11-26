@@ -57,7 +57,7 @@ def generate_3d(args):
     if args.remesh:
         remeshed_filepath = os.path.join(args.output_folder, f"remesh.obj")
         print("Remeshing with Instant Meshes...")
-        command = f"apps/third_party/InstantMeshes {geo_file} -f {args.target_face_count} -o {remeshed_filepath}"
+        command = f"InstantMeshes {geo_file} -f {args.target_face_count} -o {remeshed_filepath}"
         os.system(command)
 
         geo_file = remeshed_filepath
