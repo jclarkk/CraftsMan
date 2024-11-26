@@ -25,15 +25,11 @@ class PixArtDinoDenoiser(BaseModule):
         context_dim: int = 1024
         n_views: int = 1
         context_ln: bool = True
-        skip_ln: bool = False
         init_scale: float = 0.25
         use_checkpoint: bool = False
         drop_path: float = 0.
-        variance_type: str = ""
-        img_pos_embed: bool = False
         clip_weight: float = 1.0
         dino_weight: float = 1.0
-        dit_block: str = ""
 
     cfg: Config
 
@@ -63,9 +59,8 @@ class PixArtDinoDenoiser(BaseModule):
 
         init_scale = self.cfg.init_scale * math.sqrt(1.0 / self.cfg.width)
         drop_path = [x.item() for x in torch.linspace(0, self.cfg.drop_path, self.cfg.layers)]
-        ditblock =  getattr(importlib.import_module("craftsman.models.denoisers.utils"), self.cfg.dit_block)
         self.blocks = nn.ModuleList([
-            ditblock(
+            DiTBlock(
                     width=self.cfg.width, 
                     heads=self.cfg.heads, 
                     init_scale=init_scale, 
@@ -82,11 +77,7 @@ class PixArtDinoDenoiser(BaseModule):
                     )
         
          # final layer
-        if self.cfg.variance_type.upper() in ["LEARNED", "LEARNED_RANGE"]:
-            self.output_channels = self.cfg.output_channels * 2
-        else:
-            self.output_channels = self.cfg.output_channels
-        self.final_layer = T2IFinalLayer(self.cfg.width, self.output_channels)
+        self.final_layer = T2IFinalLayer(self.cfg.width, self.cfg.output_channels)
 
         self.identity_initialize()
 
@@ -98,17 +89,6 @@ class PixArtDinoDenoiser(BaseModule):
                 if k.startswith('denoiser_model.'):
                     self.denoiser_ckpt[k.replace('denoiser_model.', '')] = v
             self.load_state_dict(self.denoiser_ckpt, strict=False)
-
-    def forward_with_dpmsolver(self, model_input, timestep, context):
-        """
-        dpm solver donnot need variance prediction
-        """
-        # https://github.com/openai/glide-text2im/blob/main/notebooks/text2im.ipynb
-        model_out = self.forward(model_input, timestep, context)
-        if self.cfg.variance_type.upper() in ["LEARNED", "LEARNED_RANGE"]:
-            return model_out.chunk(2, dim=-1)[0]
-        else:
-            return model_out
 
     def identity_initialize(self):
         for block in self.blocks:
