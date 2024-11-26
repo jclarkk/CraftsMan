@@ -14,6 +14,8 @@ pandas==2.2.2
 pillow==10.3.0
 plyfile==1.0.3
 PyMCubes==0.1.4
+pygltflib==1.16.2
+pymeshlab==2023.12.post1
 pyparsing==3.1.2
 pytorch-lightning==2.2.4
 PyYAML==6.0.1
